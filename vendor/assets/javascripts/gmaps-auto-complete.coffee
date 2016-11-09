@@ -7,6 +7,7 @@ class GmapsCompleter
   positionOutputter: null
   updateUI: null
   updateMap: null
+  autoCompleteCallback: null
   region: null
   country: null
   debugOn: false
@@ -46,6 +47,7 @@ class GmapsCompleter
     @positionOutputter  = opts['positionOutputter'] || @assist.positionOutputter
     @updateUI           = opts['updateUI'] || @assist.updateUI
     @updateMap          = opts['updateMap'] || @assist.updateMap
+    @autoCompleteCallback = opts['autoCompleteCallback'] || @assist.autoCompleteCallback
 
     @geocodeErrorMsg    = opts['geocodeErrorMsg'] || @assist.geocodeErrorMsg
     @geocodeErrorMsg    = opts['geocodeErrorMsg'] || @assist.geocodeErrorMsg
@@ -203,7 +205,7 @@ class GmapsCompleter
     defaultAutocompleteOpts =
       # event triggered when drop-down option selected
       select: (event,ui) ->
-        self.updateUI  ui.item.value, ui.item.geocode.geometry.location
+        self.updateUI  ui.item.geocode, ui.item.geocode.geometry.location
         self.updateMap ui.item.geocode.geometry
       # source is the list of input options shown in the autocomplete dropdown.
       # see documentation: http://jqueryui.com/demos/autocomplete/
@@ -223,17 +225,7 @@ class GmapsCompleter
         # and a callback function which should process the results into
         # a format accepted by jqueryUI autocomplete
         self.geocoder.geocode(geocodeOpts, (results, status) ->
-          response(
-            $.map(results, (item) ->
-              uiAddress = item.formatted_address.replace ", " + self.country, ''
-              # var uiAddress = item.formatted_address;
-              {
-              label: uiAddress # appears in dropdown box
-              value: uiAddress # inserted into input element when selected
-              geocode: item    # all geocode data: used in select callback event
-              }
-            )
-          )
+          response(self.autoCompleteCallback(results, status))
         )
 
     autocompleteOpts = $.extend true, defaultAutocompleteOpts, autocompleteOpts
@@ -263,6 +255,16 @@ class GmapsCompleterDefaultAssist
     inputField: '#gmaps-input-address'
     errorField: '#gmaps-error'
     debugOn: true
+
+  autoCompleteCallback: (results, status) ->
+    $.map(results, (item) ->
+      uiAddress = item.formatted_address.replace ", " + self.country, ''
+      {
+        label: uiAddress # appears in dropdown box
+        value: uiAddress # inserted into input element when selected
+        geocode: item    # all geocode data: used in select callback event
+      }
+    )
 
   # move the marker to a new position, and center the map on it
   updateMap: (geometry) ->
